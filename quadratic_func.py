@@ -583,7 +583,7 @@ class Summary(Scene):
         a_text.set_color_by_t2c({"a": YELLOW})
         b_text = Text("b:表示物体所受到的向上或向下的力").next_to(a_text, DOWN)
         b_text.set_color_by_t2c({"b": YELLOW})
-        c_text = Text("c:表示物体所受到的向上或向下的力").next_to(b_text, DOWN)
+        c_text = Text("c:表示物体的初始高度").next_to(b_text, DOWN)
         c_text.set_color_by_t2c({"c": YELLOW})
         for x in [a_text, b_text, c_text]:
             self.play(Write(x))
