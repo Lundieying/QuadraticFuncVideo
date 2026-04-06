@@ -142,88 +142,459 @@ class BasketballEasyFunc(MovingCameraScene):
     config.frame_width = 28  # 默认是 14
     config.frame_height = 16  # 默认是 8
     def construct(self):
-        axis = NumberPlane(
+        #建立坐标系
+        asix = NumberPlane(
             x_range=[-14,14,0.25],
             y_range=[-100,100,0.25]
         )
-        self.play(Create(axis), run_time=5)
+        self.play(Create(asix), run_time=5)
+
+        #准备物体
+        basketball = ImageMobject("Image/basketball.png")
+        time_dot = Dot()
+        projection_dot = Dot()
+
+        #准备介绍文字
+        arrow = Arrow(start=UP*0.1+RIGHT*0.1, end=UP*2+RIGHT*2, stroke_width=5)
+        introduc_text = None
+
+        #引入篮球
+        basketball.move_to([0,9,0])
+        basketball.scale(0.5)
+        self.add(basketball)
+        self.play(basketball.animate.shift(DOWN*9), run_time=5)
         self.wait()
+        #介绍篮球
+        introduc_text = Text("受重力影响的物体", font_size=40).next_to(arrow, UP+RIGHT)
+        self.play(Create(arrow))
+        self.play(Write(introduc_text))
+        self.wait(3)
+        #篮球退场
+        self.play(FadeOut(arrow,introduc_text))
+        self.play(basketball.animate.shift(UP*9), run_time=5)
+        self.remove(basketball)
+        basketball.move_to([0,0,0])
+        self.wait()
+
+        #引入时间点
+        self.play(FadeIn(time_dot))
+        self.play(time_dot.animate.shift(RIGHT*14), run_time=1)
+        self.play(time_dot.animate.shift(RIGHT*-28), run_time=2)
+        self.play(time_dot.animate.shift(RIGHT*14), run_time=1)
+        self.wait()
+        #介绍时间点
+        introduc_text = Text("物体运动的时间", font_size=40).next_to(arrow, UP+RIGHT)
+        self.play(Create(arrow))
+        self.play(Write(introduc_text))
+        self.wait(3)
+        #时间点退场
+        self.play(FadeOut(arrow, introduc_text))
+        self.play(FadeOut(time_dot))
+        self.wait()
+
+        #准备说明文字
+        text_center = Dot().next_to(basketball,LEFT*13+UP*7)#所有说明文字的空壳，不用显示
+        func = MathTex("y=ax^2").next_to(text_center, UP)
+        a_text = MathTex("a=").next_to(text_center, LEFT*0.5)
+        a = ValueTracker(1)
+        a_show = DecimalNumber(a.get_value()).next_to(a_text, RIGHT)
+        x_text = MathTex("x=").next_to(text_center, LEFT*0.5 + DOWN)
+        x = ValueTracker(0)
+        x_show = DecimalNumber(x.get_value()).next_to(x_text, RIGHT)
+        def bind(mob, dt):
+            #绑定数值
+            a_show.set_value(a.get_value())
+            x.set_value(time_dot.get_x())
+            x_show.set_value(x.get_value())
+            #绑定位置
+            text_center.next_to(basketball,LEFT*13 + UP*7)
+            func.next_to(text_center, UP)
+            a_text.next_to(text_center, LEFT*0.5)
+            a_show.next_to(a_text, RIGHT)
+            x_text.next_to(text_center, LEFT*0.5 + DOWN)
+            x_show.next_to(x_text, RIGHT)
+        #写文字动画
+        for i in [func,a_text,a_show,x_text,x_show]:
+            self.play(Write(i))
+
+        #准备画函数图像
+        def camera_with(mob, dt):#将相机绑定在篮球上
+            self.camera.frame.move_to(basketball)
+        def projection(mob, dt):
+            projection_dot.move_to(basketball.get_center()+time_dot.get_center())
+        p_or_n = 1
+        def move(mob, dt):
+            time_dot.shift(p_or_n*RIGHT*dt)
+        def of_func(mob,dt):
+            basketball.move_to([0,a.get_value()*time_dot.get_x()**2,0])
+        trace = TracedPath(projection_dot.get_center, dissipating_time=None)
+        basketball.move_to([0,0,0])
+
+        #引入动画
+        self.play(FadeIn(basketball, time_dot, projection_dot))
+        self.add(trace)
+        #装载函数开始绘制
+        for i in [move,of_func,projection,camera_with,bind]:
+            func.add_updater(i)
+        asix.add_updater(lambda mob,dt: asix.set_y(time_dot.get_y()))
+        self.wait(14)
+        #回到初始
+        func.clear_updaters()
+        self.wait()
+        for i in [of_func, projection, camera_with, bind]:
+            func.add_updater(i)
+        self.play(time_dot.animate.set_x(0), run_time=1)
+        self.wait()
+
+        #停止篮球比喻
+        #隐藏
+        func.clear_updaters()
+        self.play(FadeOut(basketball, time_dot, projection_dot, trace, x_text, x_show))
+        #绘制函数
+        func.add_updater(bind)
+        graph = always_redraw(lambda : asix.plot(lambda i: a.get_value()*i**2))
+        self.play(Create(graph))
+        #正数
+        self.play(a.animate.set_value(2.5), run_time=1)
+        self.wait()
+        self.play(a.animate.set_value(5), run_time=1)
+        self.wait()
+        self.play(a.animate.set_value(100), run_time=5, rate_func=linear)
+        self.wait()
+        #负数
+        self.play(a.animate.set_value(-2.5), run_time=1)
+        self.wait()
+        self.play(a.animate.set_value(-5), run_time=1)
+        self.wait()
+        self.play(a.animate.set_value(-100), run_time=5, rate_func=linear)
+        self.wait()
+        #0
+        self.play(a.animate.set_value(0), run_time=1)
+        self.wait()
+
+#manim -pqm quadratic_func.py MiddleFunc
+class MiddleFunc(Scene):
+    config.frame_width = 14  # 默认是 14
+    config.frame_height = 8  # 默认是 8
+    def construct(self):
+        # 建立坐标系
+        axis = NumberPlane(
+            # [x,y,z]，x表示最小范围，y最大范围，z单位长度
+            x_range=[-4, 4, 0.5],
+            y_range=[-3, 3, 0.5],
+            background_line_style={
+                "stroke_color": BLUE,
+                "stroke_width": 2,
+                "stroke_opacity": 1
+            }
+        )
+        self.play(Create(axis), run_time=3)
+        unit_len = Text("单位长度:0.5", font_size=15)
+        unit_len.set_y(-3.75)
+        self.play(Write(unit_len))
+        self.wait()
+        self.play(axis.animate.shift(RIGHT * 2), unit_len.animate.shift(RIGHT * 2))
+        self.wait()
+
+        # 文字说明
+        func = MathTex("y=ax^2+bx")
+        func.move_to([-5, 3, 0])
+        self.play(Write(func))
+        a_text = MathTex("a=")
+        a_text.next_to([-6, 2, 0])
+        a = ValueTracker(-1)
+        a_show = DecimalNumber(a.get_value()).next_to(a_text, RIGHT)
+        b_text = MathTex("b=")
+        b_text.next_to([-6, 1, 0])
+        b = ValueTracker(0)
+        b_show = DecimalNumber(b.get_value()).next_to(b_text, RIGHT)
+
+        def show_value(obj):
+            if obj == a_show:
+                a_show.set_value(a.get_value())
+            if obj == b_show:
+                b_show.set_value(b.get_value())
+
+        self.play(Write(a_text))
+        self.play(Write(a_show))
+        a_show.add_updater(show_value)
+        self.play(Write(b_text))
+        self.play(Write(b_show))
+        b_show.add_updater(show_value)
+
+        # 画函数图像
+        def draw():
+            return axis.plot(lambda x: a.get_value()*x**2 + b.get_value()*x)
+
+        graph = always_redraw(draw)
+        self.play(Create(graph))
+        self.play(b.animate.set_value(2), run_time=1)
+        self.wait()
+        self.play(b.animate.set_value(3.5), run_time=1)
+        self.wait()
+        self.play(b.animate.set_value(-1.45), run_time=1)
+        self.wait(3)
+
+#manim -pqm quadratic_func.py BasketballMiddleFunc
+class BasketballMiddleFunc(MovingCameraScene):
+    config.frame_width = 28  # 默认是 14
+    config.frame_height = 16  # 默认是 8
+
+    def construct(self):
+        # 建立坐标系
+        asix = NumberPlane(
+            x_range=[-14, 14, 0.25],
+            y_range=[-100, 100, 0.25]
+        )
+        self.play(Create(asix), run_time=5)
+
+        # 准备物体
         basketball = ImageMobject("Image/basketball.png")
         basketball.scale(0.5)
         time_dot = Dot()
-        func = MathTex("y=ax^2")
-        func.add_updater(lambda: func.next_to(self.camera.frame, LEFT*13+UP*3.5))
-        a_text = MathTex("a=")
-        a_text.add_updater(lambda: a_text.next_to(self.camera.frame, LEFT*14+UP*2.5))
-        a = ValueTracker(1)
+        projection_dot = Dot()
+
+        # 准备说明文字
+        text_center = Dot().next_to(basketball, LEFT * 13 + UP * 7)  # 所有说明文字的空壳，不用显示
+        func = MathTex("y=ax^2+bx").next_to(text_center, UP)
+        a_text = MathTex("a=").next_to(text_center, LEFT * 0.5)
+        a = ValueTracker(-1)
         a_show = DecimalNumber(a.get_value()).next_to(a_text, RIGHT)
-        x_text = MathTex("x=")
-        x_text.add_updater(lambda: x_text.next_to(self.camera.frame,LEFT*-14+UP*1.5))
+        b_text = MathTex("b=").next_to(text_center, LEFT * 0.5 + DOWN)
+        b = ValueTracker(5)
+        b_show = DecimalNumber(a.get_value()).next_to(b_text, RIGHT)
+        x_text = MathTex("x=").next_to(text_center, LEFT * 0.5 + DOWN*2.75)
         x = ValueTracker(0)
         x_show = DecimalNumber(x.get_value()).next_to(x_text, RIGHT)
-        def show_value(obj):
-            if obj == a_show:
-                obj.set_value(a.get_value())
-            if obj == x_show:
-                obj.set_value(x.get_value())
-        a_show.add_updater(show_value)
-        x_show.add_updater(show_value)
-        self.play(FadeIn(basketball))
-        self.wait()
 
-        #引入篮球和时间点
-        arrow = Arrow(start=UP*0.2 + RIGHT*0.2, end=UP*1 + RIGHT*1, stroke_width=4)
-        introduc_text = Text("受重力影响的物体", font_size=40).next_to(arrow, UP * 0.5 + RIGHT * 0.5)
-        self.play(Create(arrow))
-        self.play(Write(introduc_text))
-        self.wait()
-        self.remove(arrow)
-        self.remove(introduc_text)
-        self.play(FadeOut(basketball))
+        def bind(mob, dt):
+            # 绑定数值
+            a_show.set_value(a.get_value())
+            b_show.set_value(b.get_value())
+            x.set_value(time_dot.get_x())
+            x_show.set_value(x.get_value())
+            # 绑定位置
+            text_center.next_to(basketball, LEFT * 13 + UP * 7)
+            func.next_to(text_center, UP)
+            a_text.next_to(text_center, LEFT * 0.5)
+            a_show.next_to(a_text, RIGHT)
+            b_text.next_to(text_center, LEFT * 0.5 + DOWN)
+            b_show.next_to(b_text, RIGHT)
+            x_text.next_to(text_center, LEFT * 0.5 + DOWN*2.75)
+            x_show.next_to(x_text, RIGHT)
 
-        self.play(Create(time_dot))
-        self.play(time_dot.animate.set_x(7), run_time=1)
-        self.play(time_dot.animate.set_x(-7), run_time=2)
+        # 写文字动画
+        for i in [func, a_text, a_show,b_text, b_show, x_text, x_show]:
+            self.play(Write(i))
+
+        # 准备画函数图像
+        def camera_with(mob, dt):  # 将相机绑定在篮球上
+            self.camera.frame.move_to(basketball)
+
+        def projection(mob, dt):
+            projection_dot.move_to(basketball.get_center() + time_dot.get_center())
+
+        p_or_n = 1
+
+        def move(mob, dt):
+            time_dot.shift(p_or_n * RIGHT * dt)
+
+        def of_func(mob, dt):
+            basketball.move_to([0, a.get_value()*time_dot.get_x()**2 + b.get_value()*time_dot.get_x(), 0])
+
+        trace = TracedPath(projection_dot.get_center, dissipating_time=None)
+        basketball.move_to([0, 0, 0])
+
+        # 引入动画
+        self.play(FadeIn(basketball, time_dot, projection_dot))
+        self.add(trace)
+        self.wait()
+        force = Arrow(start=UP*0, end=UP*2, stroke_width=5, stroke_color=GREEN)
+        self.play(Create(force))
+        # 装载函数开始绘制
+        for i in [move, of_func, projection, camera_with, bind]:
+            func.add_updater(i)
+        asix.add_updater(lambda mob, dt: asix.set_y(time_dot.get_y()))
+        self.play(FadeOut(force))
+        self.wait(6)
+        # 回到初始
+        func.clear_updaters()
+        self.wait()
+        for i in [of_func, projection, camera_with, bind]:
+            func.add_updater(i)
         self.play(time_dot.animate.set_x(0), run_time=1)
         self.wait()
-        arrow = Arrow(start=UP * 0.1 + RIGHT * 0.1, end=UP * 1 + RIGHT * 1, stroke_width=4)
-        introduc_text = Text("物体运动的时间", font_size=40).next_to(arrow, UP * 0.5 + RIGHT * 0.5)
-        self.play(Create(arrow))
-        self.play(Write(introduc_text))
+        self.play(FadeOut(trace))
+        trace = TracedPath(projection_dot.get_center, dissipating_time=None)
+        self.add(trace)
         self.wait()
-        self.remove(arrow)
-        self.remove(introduc_text)
-        self.play(FadeOut(time_dot))
+        #b改为负
+        func.clear_updaters()
+        force = Arrow(start=UP*0, end=DOWN*2, stroke_width=5, stroke_color=GREEN)
+        self.play(b.animate.set_value(-5), Create(force), run_time=1)
+        self.wait()
+        for i in [move, of_func, projection, camera_with, bind]:
+            func.add_updater(i)
+        asix.add_updater(lambda mob, dt: asix.set_y(time_dot.get_y()))
+        self.play(FadeOut(force))
+        self.wait(6)
+        # 回到初始
+        func.clear_updaters()
+        self.wait()
+        for i in [of_func, projection, camera_with, bind]:
+            func.add_updater(i)
+        self.play(time_dot.animate.set_x(0), run_time=1)
+        self.wait()
 
+        # 停止篮球比喻
+        # 隐藏
+        func.clear_updaters()
+        self.play(FadeOut(basketball, time_dot, projection_dot, trace, x_text, x_show))
+        # 绘制函数
+        func.add_updater(bind)
+        graph = always_redraw(lambda: asix.plot(lambda i: a.get_value()*i**2+b.get_value()*i))
+        self.play(Create(graph))
+        # 正数
+        self.play(b.animate.set_value(2.5), run_time=1)
+        self.wait()
+        self.play(b.animate.set_value(5), run_time=1)
+        self.wait()
+        self.play(b.animate.set_value(100), run_time=5, rate_func=linear)
+        self.wait()
+        # 负数
+        self.play(b.animate.set_value(-2.5), run_time=1)
+        self.wait()
+        self.play(b.animate.set_value(-5), run_time=1)
+        self.wait()
+        self.play(b.animate.set_value(-100), run_time=5, rate_func=linear)
+        self.wait()
+        # 0
+        self.play(b.animate.set_value(0), run_time=1)
+        self.wait()
+
+#manim -pqm quadratic_func.py FullFunc
+class FullFunc(Scene):
+    config.frame_width = 14  # 默认是 14
+    config.frame_height = 8  # 默认是 8
+
+    def construct(self):
+        # 建立坐标系
+        axis = NumberPlane(
+            # [x,y,z]，x表示最小范围，y最大范围，z单位长度
+            x_range=[-4, 4, 0.5],
+            y_range=[-3, 3, 0.5],
+            background_line_style={
+                "stroke_color": BLUE,
+                "stroke_width": 2,
+                "stroke_opacity": 1
+            }
+        )
+        self.play(Create(axis), run_time=3)
+        unit_len = Text("单位长度:0.5", font_size=15)
+        unit_len.set_y(-3.75)
+        self.play(Write(unit_len))
+        self.wait()
+        self.play(axis.animate.shift(RIGHT * 2), unit_len.animate.shift(RIGHT * 2))
+        self.wait()
+
+        # 文字说明
+        func = MathTex("y=ax^2+bx+c")
+        func.move_to([-5, 3, 0])
         self.play(Write(func))
+        a_text = MathTex("a=")
+        a_text.next_to([-6, 2, 0])
+        a = ValueTracker(-1)
+        a_show = DecimalNumber(a.get_value()).next_to(a_text, RIGHT)
+        b_text = MathTex("b=")
+        b_text.next_to([-6, 1, 0])
+        b = ValueTracker(2)
+        b_show = DecimalNumber(b.get_value()).next_to(b_text, RIGHT)
+        c_text = MathTex("c=")
+        c_text.next_to([-6, 0, 0])
+        c = ValueTracker(0)
+        c_show = DecimalNumber(b.get_value()).next_to(c_text, RIGHT)
+
+        def show_value(obj):
+            if obj == a_show:
+                a_show.set_value(a.get_value())
+            if obj == b_show:
+                b_show.set_value(b.get_value())
+            if obj == c_show:
+                c_show.set_value(c.get_value())
+
         self.play(Write(a_text))
         self.play(Write(a_show))
-        self.play(Write(x_text))
-        self.play(Write(x_show))
+        a_show.add_updater(show_value)
+        self.play(Write(b_text))
+        self.play(Write(b_show))
+        b_show.add_updater(show_value)
+        self.play(Write(c_text))
+        self.play(Write(c_show))
+        c_show.add_updater(show_value)
+
+        # 画函数图像
+        def draw():
+            return axis.plot(lambda x:a.get_value()*x**2 + b.get_value()*x + c.get_value())
+
+        graph = always_redraw(draw)
+        self.play(Create(graph))
+        self.play(c.animate.set_value(2), run_time=1)
+        self.wait()
+        self.play(c.animate.set_value(3.5), run_time=1)
+        self.wait()
+        self.play(c.animate.set_value(-1.45), run_time=1)
+        self.wait(3)
+
+#manim -pqm quadratic_func.py BasketballFullFunc
+class BasketballFullFunc(Scene):
+    def construct(self):
+        rectangle1 = Rectangle(width=3, height=2, color=GRAY).move_to(DOWN * 1)
+        rectangle2 = Rectangle(width=3, height=1, color=GRAY).next_to(rectangle1, RIGHT).shift(DOWN*0.5)
+        basketball = ImageMobject("Image/basketball.png").next_to(rectangle1, UP)
+        self.play(FadeIn(rectangle1, rectangle2))
+        self.wait()
+        self.play(FadeIn(basketball))
+        arrow = CurvedArrow(
+            start_point=basketball.get_center(),
+            end_point=rectangle2.get_center() + UP,
+            color=RED,
+            angle=-PI / 2,
+            stroke_width=5,
+        )
+        self.play(Create(arrow))
         self.wait()
 
-        #绘制函数
-        self.play(FadeIn(basketball, time_dot))
-        projection_dot = Dot()
-        def projection(obj):
-            projection_dot.move_to(basketball.get_center() + time_dot.get_center())
-        trace = TracedPath(projection_dot.get_center, dissipating_time=None)
-        def move(obj, dt):
-            x.set_value(x.get_value()+dt)
-            time_dot.set_x(x.get_value())
-            basketball.move_to([0,a.get_value()*x.get_value()**2,0])
-        projection_dot.add_updater(projection)
-        self.add(projection_dot)
-        self.add(trace)
-        projection_dot.add_updater(move)
-        def move_with_camera(obj):
-            self.camera.frame.move_to(obj.get_center())
-        basketball.add_updater(move_with_camera)
-        # def follow(obj):
-        #     obj.move_to(self.camera.frame.get_y()+obj.get_center())
-        # func.add_updater(follow)
-        # a_text.add_updater(follow)
-        # a_show.add_updater(follow)
-        # x_text.add_updater(follow)
-        # x_show.add_updater(follow)
-        self.wait(19)
+#manim -pqm quadratic_func.py Summary
+class Summary(Scene):
+    def construct(self):
+        func_text = MathTex("y=ax^2+bx+c")
+        self.play(Write(func_text))
+        self.wait()
+        self.play(func_text.animate.shift(LEFT * 1.5))
+        self.wait()
+        explain = MathTex("(a\\neq0)")
+        explain.set_x(1.5)
+        self.play(Write(explain))
+        self.wait()
+        self.play(func_text.animate.shift(UP * 2), explain.animate.shift((UP * 2)))
+        arrow = Arrow(start=UP * 1, end=DOWN * 1, stroke_width=4, stroke_color=GREEN)
+        self.play(Create(arrow))
+        a_text = Text("a:表示物体所受的重力").next_to(arrow, DOWN)
+        a_text.set_color_by_t2c({"a": YELLOW})
+        b_text = Text("b:表示物体所受到的向上或向下的力").next_to(a_text, DOWN)
+        b_text.set_color_by_t2c({"b": YELLOW})
+        c_text = Text("c:表示物体所受到的向上或向下的力").next_to(b_text, DOWN)
+        c_text.set_color_by_t2c({"c": YELLOW})
+        for x in [a_text, b_text, c_text]:
+            self.play(Write(x))
+        self.wait()
+
+#manim -pqm quadratic_func.py End
+class End(Scene):
+    def construct(self):
+        m1 = MathTex("Math", color=BLUE)
+        m2 = MathTex("X")
+        m3 = MathTex("Physics", color=PINK)
+        group = VGroup(m1, m2, m3).arrange(RIGHT)
+        self.play(Write(group))
+        self.wait()
