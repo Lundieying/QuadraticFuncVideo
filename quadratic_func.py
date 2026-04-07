@@ -67,7 +67,7 @@ class BasketballFly(Scene):
 #manim -pqm quadratic_func.py ShowTitle
 class ShowTitle(Scene):
     def construct(self):
-        title = Text("二次函数中的物理")
+        title = Text("从抛体运动看二次函数的物理意义")
         self.play(Write(title))
         self.wait()
 
@@ -579,11 +579,11 @@ class Summary(Scene):
         self.play(func_text.animate.shift(UP * 2), explain.animate.shift((UP * 2)))
         arrow = Arrow(start=UP * 1, end=DOWN * 1, stroke_width=4, stroke_color=GREEN)
         self.play(Create(arrow))
-        a_text = Text("a:表示物体所受的重力").next_to(arrow, DOWN)
+        a_text = Text("a:与重力加速度有关").next_to(arrow, DOWN)
         a_text.set_color_by_t2c({"a": YELLOW})
-        b_text = Text("b:表示物体所受到的向上或向下的力").next_to(a_text, DOWN)
+        b_text = Text("b:与物体初速度有关").next_to(a_text, DOWN)
         b_text.set_color_by_t2c({"b": YELLOW})
-        c_text = Text("c:表示物体的初始高度").next_to(b_text, DOWN)
+        c_text = Text("c:表示物体抛出点的初始高度").next_to(b_text, DOWN)
         c_text.set_color_by_t2c({"c": YELLOW})
         for x in [a_text, b_text, c_text]:
             self.play(Write(x))
